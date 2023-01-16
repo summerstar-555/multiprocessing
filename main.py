@@ -23,8 +23,9 @@
 　　7、join()
 　　　　主进程阻塞等待子进程的退出， join方法要在close或terminate之后使用。
 """
+import queue
 
-# map的使用
+# map的使用例子1
 """
 from multiprocessing import Pool
 import time
@@ -36,6 +37,25 @@ if __name__ == '__main__':  # 测试后发现如果不加上这句话就会报�
     with Pool(5) as p:
         print(p.map(f, [1, 2, 3, 4, 5, 6]))
     print(f'总共用时{time.time() - now}')
+"""
+
+# map使用例子2
+"""
+import multiprocessing
+
+
+def job(x, y):
+    return x * y
+
+
+def job1(z):
+    return job(z[0], z[1])
+
+
+if __name__ == "__main__":
+    pool = multiprocessing.Pool()
+    res = pool.map(job1, [(2, 3), (3, 4)])
+    print(res)
 """
 
 # apply_async的使用
@@ -65,6 +85,22 @@ if __name__ == "__main__":
     pool.join()  # 调用join之前，先调用close函数，否则会出错。执行完close后不会有新的进程加入到pool,join函数等待所有子进程结束
 """
 
+# apply_async的返回值是一个对象
+"""
+import multiprocessing
+
+
+def job(x):
+    return x * x
+
+
+if __name__ == "__main__":
+    pool = multiprocessing.Pool()
+    # apply_async返回一个对象，通过get()方法能够获取这个对象的值
+    res = [pool.apply_async(func=job, args=(i,)) for i in range(3)]
+    print([r.get() for r in res])       
+
+"""
 
 # Queue(队列)的使用
 """
@@ -119,8 +155,8 @@ def print_msg(msg: str):
 
 
 if __name__ == "__main__":
-    msg1 = 'hello'
-    msg2 = 'world'
+    msg1 = '我是进程1'
+    msg2 = '我是进程2'
     p1 = Process(target=print_msg, args=(msg1, ))       # 这里的args需要注意，args这个参数是一个类似于元组的东西
     p2 = Process(target=print_msg, args=(msg2, ))
     p1.start()
@@ -148,4 +184,159 @@ if __name__ == '__main__':
         print('这是主进程')
 """
 
+# a+b
+"""
+from multiprocessing import Process
+def fun1(a: int, b: int):
+    print(f'{a}+{b}的结果为{a + b}')
 
+
+if __name__ == '__main__':
+    p1 = Process(target=fun1, args=(1, 3))
+    p2 = Process(target=fun1, args=(2, 4))
+    p1.start()
+    p2.start()
+"""
+
+# start和run的区别，start是并行，run是并发
+# 使用run
+"""
+import multiprocessing
+import time
+
+
+def download():
+    print('开始下载')
+    for i in range(3):
+        print('-----1------')
+        time.sleep(1)
+
+
+def upload():
+    print('上传完毕')
+    for i in range(3):
+        print('-----2------')
+        time.sleep(1)
+
+
+def main():
+    # queue = multiprocessing.Queue()    #实例化队列
+    process1 = multiprocessing.Process(target=upload)
+    process2 = multiprocessing.Process(target=download)
+    process1.run()
+    process2.run()
+
+
+if __name__ == '__main__':
+    main()
+"""
+
+"""
+运行结果：
+上传完毕
+-----2------
+-----2------
+-----2------
+开始下载
+-----1------
+-----1------
+-----1------
+"""
+# 使用start
+"""
+import multiprocessing
+import time
+
+
+def download():
+    print('开始下载')
+    for i in range(3):
+        print('-----1------')
+        time.sleep(1)
+
+
+def upload():
+    print('上传完毕')
+    for i in range(3):
+        print('-----2------')
+        time.sleep(1)
+
+
+def main():
+    # queue = multiprocessing.Queue()    #实例化队列
+    process1 = multiprocessing.Process(target=upload)
+    process2 = multiprocessing.Process(target=download)
+    # process1.run()
+    # process2.run()
+    process1.start()
+    process2.start()
+
+
+if __name__ == '__main__':
+    main()
+"""
+"""
+执行结果：
+上传完毕
+-----2------
+开始下载
+-----1------
+-----2------
+-----1------
+-----2------
+-----1------
+"""
+
+# 多进程例子1
+# from multiprocessing import Process
+#
+#
+# def print_num(num: int):
+#     print(num)
+#
+#
+# if __name__ == '__main__':
+#     processes = [Process(target=print_num, args=(i, )) for i in range(5)]
+#     for Process in processes:
+#         Process.start()
+#     for Process in processes:
+#         Process.join()
+
+
+# 多进程例子2    -同例子1，但好理解
+"""
+from multiprocessing import Process
+
+
+def print_num(num: int):
+    print(num)
+
+
+if __name__ == '__main__':
+    processes = []
+    for i in range(5):
+        processes.append(Process(target=print_num, args=(i,)))
+    for Process in processes:
+        Process.start()
+    for Process in processes:
+        Process.join()
+"""
+
+# 进程间共享状态 - Value
+from multiprocessing import Process, Value
+
+
+def f(n):
+    n.value = n.value + 3
+
+
+if __name__ == '__main__':
+    num = Value('i', 0)
+
+    p1 = Process(target=f, args=(num, ))
+    p2 = Process(target=f, args=(num, ))
+    p1.start()
+    p2.start()
+    p1.join()
+    p2.join()
+    print(num.value)
